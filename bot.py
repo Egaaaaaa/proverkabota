@@ -1,11 +1,11 @@
+import asyncio
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.types import Message
-import asyncio
-import os
 
-# Токен берём из переменной окружения
-TOKEN = os.getenv("8523590707:AAF7hd66xppfiBeDveh-nw0lxSQrvWFiyxk")
+# Твой токен Telegram
+TOKEN = "8523590707:AAF7hd66xppfiBeDveh-nw0lxSQrvWFiyxk"
+
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
@@ -47,4 +47,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-
