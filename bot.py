@@ -12,6 +12,8 @@ bot = Bot(TOKEN)
 dp = Dispatcher()
 user_data = {}
 
+# ======== КОМАНДЫ ========
+
 @dp.message(Command("add"))
 async def add_amount(message: Message):
     parts = message.text.split()
@@ -29,10 +31,40 @@ async def add_amount(message: Message):
         user_data[user_id] = {"name": username, "total": 0}
 
     user_data[user_id]["total"] += amount
+
+    # сообщения всем
     lines = [f"@{u['name']} — всего: {u['total']}₽" for u in user_data.values()]
     total_sum = sum(u["total"] for u in user_data.values())
     text = f"@{username} закинул бабки — {amount}₽\n" + "\n".join(lines) + f"\nОбщая сумма: {total_sum}₽"
     await message.answer(text)
+
+@dp.message(Command("total"))
+async def total(message: Message):
+    if not user_data:
+        return await message.answer("Пока никто ничего не добавил.")
+    total_sum = sum(u["total"] for u in user_data.values())
+    await message.answer(f"Общая сумма всех участников: {total_sum}₽")
+
+@dp.message(Command("top"))
+async def top(message: Message):
+    if not user_data:
+        return await message.answer("Пока нет участников.")
+    sorted_users = sorted(user_data.values(), key=lambda x: x["total"], reverse=True)
+    text = "🏆 Топ участников:\n"
+    for i, u in enumerate(sorted_users[:10], 1):
+        text += f"{i}. @{u['name']} — {u['total']}₽\n"
+    await message.answer(text)
+
+@dp.message(Command("reset_user"))
+async def reset_user(message: Message):
+    user_id = message.from_user.id
+    if user_id in user_data:
+        user_data[user_id]["total"] = 0
+        await message.answer("Твоя сумма обнулена ✅")
+    else:
+        await message.answer("Ты ещё не добавлял сумму.")
+
+# ======== WEBHOOK ========
 
 async def handle(request: web.Request):
     data = await request.json()
