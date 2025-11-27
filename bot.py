@@ -1,121 +1,111 @@
+import asyncio
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.types import Message
-import asyncio
 
-# Токен бота
-TOKEN = "ТВОЙ_ТОКЕН"
+# Твой токен Telegram
+TOKEN = "8523590707:AAF7hd66xppfiBeDveh-nw0lxSQrvWFiyxk"
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
-# История пользователей
-# Формат: {user_id: {"name": username, "total": сумма}}
 user_data = {}
 
-# Админ ID для команды /reset_all
-ADMIN_ID = 123456789  # замени на свой ID
+ADMIN_ID = 123456789  # <- замени на свой Telegram ID для админских команд
 
-# ===== /add =====
+@dp.message(Command("start"))
+async def start(message: Message):
+    await message.answer(
+        "Привет! 👋\n"
+        "Отправь сумму в формате:\n"
+        "/add 1500\n\n"
+        "Команды:\n"
+        "/add <сумма> — добавить доход\n"
+        "/remove <сумма> — снять часть дохода\n"
+        "/total — общий доход всех участников\n"
+        "/my — твоя история\n"
+        "/top — топ участников\n"
+        "/reset_user — обнулить свой доход\n"
+        "/reset_all — обнулить всех (только админ)"
+    )
+
 @dp.message(Command("add"))
 async def add_amount(message: Message):
     parts = message.text.split()
-    if len(parts) < 2:
+    if len(parts) < 2 or not parts[1].isdigit():
         return await message.answer("Используй формат: /add 1500")
-
-    try:
-        amount = int(parts[1])
-    except ValueError:
-        return await message.answer("Сумма должна быть числом. Пример: /add 1500")
-
+    amount = int(parts[1])
     user_id = message.from_user.id
-    username = message.from_user.username or message.from_user.full_name
+    user_name = message.from_user.username or message.from_user.first_name
+    user_data[user_id] = user_data.get(user_id, 0) + amount
+    total_sum = sum(user_data.values())
 
-    if user_id not in user_data:
-        user_data[user_id] = {"name": username, "total": 0}
+    # Первое сообщение — кто добавил
+    await message.answer(f"@{user_name} закинул бабки в общий доход — {amount}₽")
+    # Второе сообщение — состояние пользователя и общий доход
+    await message.answer(f"@{user_name} — всего: {user_data[user_id]}₽\nОбщая сумма: {total_sum}₽")
 
-    user_data[user_id]["total"] += amount
+@dp.message(Command("remove"))
+async def remove_amount(message: Message):
+    parts = message.text.split()
+    if len(parts) < 2 or not parts[1].isdigit():
+        return await message.answer("Используй формат: /remove 500")
+    amount = int(parts[1])
+    user_id = message.from_user.id
+    user_name = message.from_user.username or message.from_user.first_name
+    current = user_data.get(user_id, 0)
+    if amount > current:
+        return await message.answer(f"У тебя недостаточно средств. Текущий баланс: {current}₽")
+    user_data[user_id] = current - amount
+    total_sum = sum(user_data.values())
 
-    total_user_amount = user_data[user_id]["total"]
-    total_all_users = sum(u["total"] for u in user_data.values())
+    # Первое сообщение — кто снял
+    await message.answer(f"@{user_name} снял бабки из общего дохода — {amount}₽")
+    # Второе сообщение — состояние пользователя и общий доход
+    await message.answer(f"@{user_name} — всего: {user_data[user_id]}₽\nОбщая сумма: {total_sum}₽")
 
-    # 1️⃣ Кто добавил
-    await message.answer(f"@{username} закинул бабки в общий доход — {amount}₽")
-
-    # 2️⃣ Сумма пользователя и общая сумма
-    await message.answer(
-        f"@{username} — всего: {total_user_amount}₽\n"
-        f"Общая сумма: {total_all_users}₽"
-    )
-
-# ===== /total =====
 @dp.message(Command("total"))
 async def total(message: Message):
     if not user_data:
         return await message.answer("Пока никто ничего не добавил.")
-    total_sum = sum(u["total"] for u in user_data.values())
+    total_sum = sum(user_data.values())
+    await message.answer(f"Общий доход всех участников: {total_sum}₽")
 
-    # Форматированный вывод всех пользователей
-    lines = [f"@{u['name']} — всего: {u['total']}₽" for u in user_data.values()]
-    lines.append(f"Общая сумма: {total_sum}₽")
-    await message.answer("\n".join(lines))
-
-# ===== /remove =====
-@dp.message(Command("remove"))
-async def remove_amount(message: Message):
-    parts = message.text.split()
-    if len(parts) < 2:
-        return await message.answer("Используй формат: /remove 1500")
-
-    try:
-        amount = int(parts[1])
-    except ValueError:
-        return await message.answer("Сумма должна быть числом.")
-
-    user_id = message.from_user.id
-    if user_id not in user_data or user_data[user_id]["total"] == 0:
-        return await message.answer("У тебя нет средств для снятия.")
-
-    user_data[user_id]["total"] = max(0, user_data[user_id]["total"] - amount)
-    await message.answer(f"Снято {amount}₽. Твой баланс: {user_data[user_id]['total']}₽")
-
-# ===== /reset_user =====
-@dp.message(Command("reset_user"))
-async def reset_user(message: Message):
-    user_id = message.from_user.id
-    if user_id in user_data:
-        user_data[user_id]["total"] = 0
-    await message.answer("Твой доход обнулён ✅")
-
-# ===== /reset_all =====
-@dp.message(Command("reset_all"))
-async def reset_all(message: Message):
-    if message.from_user.id != ADMIN_ID:
-        return await message.answer("Только админ может использовать эту команду.")
-    for u in user_data.values():
-        u["total"] = 0
-    await message.answer("Все доходы обнулены ✅")
-
-# ===== /my =====
 @dp.message(Command("my"))
 async def my_history(message: Message):
     user_id = message.from_user.id
-    if user_id not in user_data:
-        return await message.answer("У тебя пока нет доходов.")
-    await message.answer(f"@{user_data[user_id]['name']} — всего: {user_data[user_id]['total']}₽")
+    total = user_data.get(user_id, 0)
+    await message.answer(f"Твой доход: {total}₽")
 
-# ===== /top =====
 @dp.message(Command("top"))
 async def top_users(message: Message):
     if not user_data:
-        return await message.answer("Пока никто ничего не добавил.")
-    sorted_users = sorted(user_data.values(), key=lambda x: x["total"], reverse=True)
-    lines = [f"@{u['name']} — {u['total']}₽" for u in sorted_users]
-    await message.answer("🏆 Топ пользователей:\n" + "\n".join(lines))
+        return await message.answer("Пока нет данных для топа.")
+    sorted_users = sorted(user_data.items(), key=lambda x: x[1], reverse=True)
+    text = "Топ участников:\n"
+    for i, (uid, amount) in enumerate(sorted_users[:10], start=1):
+        user_name = (await bot.get_chat(uid)).username or (await bot.get_chat(uid)).first_name
+        text += f"{i}. @{user_name} — {amount}₽\n"
+    await message.answer(text)
 
-# ===== Запуск бота =====
+@dp.message(Command("reset_user"))
+async def reset_user(message: Message):
+    user_id = message.from_user.id
+    user_data[user_id] = 0
+    await message.answer("Твой доход обнулён.")
+
+@dp.message(Command("reset_all"))
+async def reset_all(message: Message):
+    if message.from_user.id != ADMIN_ID:
+        return await message.answer("У тебя нет прав на эту команду.")
+    user_data.clear()
+    await message.answer("Все доходы обнулены.")
+
 async def main():
-    await dp.start_polling(bot)
+    try:
+        await dp.start_polling(bot)
+    except Exception as e:
+        print("Ошибка бота:", e)
 
 if __name__ == "__main__":
     asyncio.run(main())
