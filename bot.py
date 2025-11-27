@@ -1,14 +1,10 @@
-import os
 import asyncio
 from aiogram import Bot, Dispatcher
 from aiogram.types import Message
 from aiogram.filters import Command
 
-# Берём токен от Railway ENV
-TOKEN = os.getenv("8523590707:AAF7hd66xppfiBeDveh-nw0lxSQrvWFiyxk")
-
-if not TOKEN:
-    raise ValueError("❌ Переменная окружения BOT_TOKEN не установлена!")
+# ТВОЙ ТОКЕН — вставлен напрямую
+TOKEN = "8523590707:AAF7hd66xppfiBeDveh-nw0lxSQrvWFiyxk"
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
@@ -36,7 +32,6 @@ async def add_amount(message: Message):
 
     user_data[user_id]["total"] += amount
 
-    # собираем всех участников
     lines = []
     total_sum = 0
 
@@ -60,4 +55,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-
