@@ -5,7 +5,7 @@ import asyncio
 import os
 
 # Токен берём из переменной окружения
-TOKEN = os.getenv("TOKEN")
+TOKEN = os.getenv("8523590707:AAF7hd66xppfiBeDveh-nw0lxSQrvWFiyxk")
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
@@ -47,3 +47,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
