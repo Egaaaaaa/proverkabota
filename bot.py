@@ -1,57 +1,44 @@
 import asyncio
+import os
 from aiogram import Bot, Dispatcher
 from aiogram.types import Message
 from aiogram.filters import Command
+from aiohttp import web
 
-# ТВОЙ ТОКЕН — вставлен напрямую
-TOKEN = "8523590707:AAF7hd66xppfiBeDveh-nw0lxSQrvWFiyxk"
+TOKEN = "ТВОЙ_ТОКЕН"
+WEBHOOK_PATH = "/webhook"
+WEBHOOK_URL = "https://proverkabota-production.up.railway.app" + WEBHOOK_PATH
 
-bot = Bot(token=TOKEN)
+bot = Bot(TOKEN)
 dp = Dispatcher()
 
-user_data = {}
+
+@dp.message(Command("start"))
+async def start(message: Message):
+    await message.answer("Бот работает через вебхук! 🚀")
 
 
-@dp.message(Command("add"))
-async def add_amount(message: Message):
-    parts = message.text.split()
-
-    if len(parts) < 2:
-        return await message.answer("Используй формат: /add 1500")
-
-    try:
-        amount = int(parts[1])
-    except ValueError:
-        return await message.answer("Сумма должна быть числом.")
-
-    user_id = message.from_user.id
-    username = message.from_user.username or message.from_user.full_name
-
-    if user_id not in user_data:
-        user_data[user_id] = {"name": username, "total": 0}
-
-    user_data[user_id]["total"] += amount
-
-    lines = []
-    total_sum = 0
-
-    for u in user_data.values():
-        lines.append(f"@{u['name']} — всего: {u['total']}₽")
-        total_sum += u["total"]
-
-    text = (
-        f"@{username} закинул бабки в общий доход — {amount}₽\n"
-        + "\n".join(lines)
-        + f"\nОбщая сумма: {total_sum}₽"
-    )
-
-    await message.answer(text)
+async def on_startup(app):
+    await bot.set_webhook(WEBHOOK_URL)
 
 
-async def main():
-    print("Бот запущен!")
-    await dp.start_polling(bot)
+async def on_shutdown(app):
+    await bot.delete_webhook()
+
+
+def main():
+    app = web.Application()
+    app.on_startup.append(on_startup)
+    app.on_shutdown.append(on_shutdown)
+
+    # Получение вебхука
+    app.router.add_post(WEBHOOK_PATH, dp.middleware.webhook_handler(bot))
+
+    # Railway даёт порт через переменную окружения
+    port = int(os.getenv("PORT", 8000))
+    web.run_app(app, host="0.0.0.0", port=port)
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
+$PORT
