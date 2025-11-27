@@ -5,7 +5,7 @@ from aiogram.types import Message
 from aiogram.filters import Command
 
 # Берём токен от Railway ENV
-TOKEN = os.getenv("BOT_TOKEN")
+TOKEN = os.getenv("8523590707:AAF7hd66xppfiBeDveh-nw0lxSQrvWFiyxk")
 
 if not TOKEN:
     raise ValueError("❌ Переменная окружения BOT_TOKEN не установлена!")
@@ -60,3 +60,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
